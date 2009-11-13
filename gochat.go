@@ -12,8 +12,8 @@ import (
 type Server struct {
 	listener		*net.TCPListener;
 	incomingMessages	chan Message;
-	registerForMessages	chan chan Message;
-	outgoingChannels	*vector.Vector;
+	registerForMessages	chan *Client;
+	clients			*vector.Vector;
 }
 
 type Message struct {
@@ -23,8 +23,8 @@ type Message struct {
 
 func (s *Server) StartServer() {
 	s.incomingMessages = make(chan Message);
-	s.registerForMessages = make(chan chan Message);
-	s.outgoingChannels = new(vector.Vector);
+	s.registerForMessages = make(chan *Client);
+	s.clients = new(vector.Vector);
 
 	go s.listenForConnections();
 	s.startRouter();
@@ -35,18 +35,32 @@ func (s *Server) startRouter() {
 		select {
 		case msg := <-s.incomingMessages:
 			s.fanOutMessage(msg)
-		case newChannel := <-s.registerForMessages:
-			s.outgoingChannels.Push(newChannel)
+		case newClient := <-s.registerForMessages:
+			s.clients.Push(newClient);
+			newClient.outgoingMessages <- s.clientList();
 		}
 	}
 }
 
+func (s *Server) clientList() (m Message) {
+	clientNicknames := make([]string, s.clients.Len());
+	for i := 0; i < s.clients.Len(); i++ {
+		client := s.clients.At(i).(*Client);
+		clientNicknames[i] = client.nickname;
+	}
+
+	str := strings.Join(clientNicknames, "\n   ") + "\n";
+
+	return Message{"Online users", str};
+}
+
 func (s *Server) fanOutMessage(msg Message) {
-	for i := 0; i < s.outgoingChannels.Len(); i++ {
-		ch := s.outgoingChannels.At(i).(chan Message);
+	for i := 0; i < s.clients.Len(); i++ {
+		client := s.clients.At(i).(*Client);
+		ch := client.outgoingMessages;
 
 		if closed(ch) {
-			s.outgoingChannels.Delete(i);
+			s.clients.Delete(i);
 			i--;
 		} else {
 			ch <- msg
@@ -69,7 +83,7 @@ func (s *Server) acceptClient() {
 	client := newClient(conn, s.incomingMessages);
 
 	client.requestNick();
-	s.registerForMessages <- client.outgoingMessages;
+	s.registerForMessages <- client;
 	client.sendReceiveMessages();
 }
 
@@ -129,6 +143,6 @@ func (c *Client) sendMessages() {
 }
 
 func (c *Client) sendMessage(msg Message) {
-	str := fmt.Sprintf("%s\n   %s", msg.sender, msg.message);
+	str := fmt.Sprintf("%s:\n   %s", msg.sender, msg.message);
 	c.conn.Write(strings.Bytes(str));
 }

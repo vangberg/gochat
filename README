@@ -9,7 +9,7 @@ It's stupidly simple:
 Now, a bunch of features is needed:
 
  * Nice formatting (screw Sprintf + TCPConn.Write() :/)
- * Sending a list of connected nicks to new users
+   - this is a serious point, I can't figure out wtf is going on.
  * Make sure we get rid of Client struct when client
    disconnects.
 
