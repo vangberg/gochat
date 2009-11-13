@@ -1,1 +1,19 @@
-foobar
+Go Chat! - the stupid chat server written in Go.
+
+It's stupidly simple:
+
+1. Compile it
+2. Run it
+3. Telnet into localhost:9999
+
+Now, a bunch of features is needed:
+
+ * Nice formatting (screw Sprintf + TCPConn.Write :/)
+ * Sending a list of connected nicks to new users
+ * Remove users when they disconnect
+
+Please do that.
+
+Harry Vangberg <harry@vangberg.name>, 2009.
+
+Available under the MIT license.
