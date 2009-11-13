@@ -2,8 +2,9 @@ package gochat
 
 import (
         "net";
-        /*"fmt";*/
+        "fmt";
         "bufio";
+        "strings";
         "container/vector";
 )
 
@@ -15,11 +16,13 @@ type Server struct {
 }
 
 type Message struct {
-        sender []byte;
-        message []byte;
+        sender string;
+        message string;
 }
 
 func (s *Server) StartServer() {
+        fmt.Println(" * Starting server…");
+
         s.incomingMessages = make(chan Message);
         s.registerForMessages = make(chan chan Message);
         s.outgoingChannels = new(vector.Vector);
@@ -29,19 +32,24 @@ func (s *Server) StartServer() {
 }
 
 func (s *Server) startRouter() {
+        fmt.Println(" * Starting message router…");
+
         for {
                 select {
                 case msg := <-s.incomingMessages:
+                        fmt.Println("Received message: ", msg);
                         for i := 0; i < s.outgoingChannels.Len(); i++ {
                                 s.outgoingChannels.At(i).(chan Message) <- msg;
                         }
                 case newChannel := <-s.registerForMessages:
+                        fmt.Println("Channel registered for messages…");
                         s.outgoingChannels.Push(newChannel);
                 }
         }
 }
 
 func (s *Server) listenForConnections() {
+        fmt.Println(" * Listening for connections…");
         ip := net.ParseIP("127.0.0.1");
         addr := &net.TCPAddr{ip, 9999};
         s.listener, _ = net.ListenTCP("tcp", addr);
@@ -51,41 +59,49 @@ func (s *Server) listenForConnections() {
 
 func (s *Server) acceptClient() {
         conn, _ := s.listener.AcceptTCP();
+        fmt.Println(" * Accepting client…");
         client := newClient(conn, s.incomingMessages);
 
         client.requestNick();
+        fmt.Println(" * Registering ", client.nickname, " for messages…");
         s.registerForMessages <- client.outgoingMessages;
         go client.sendReceiveMessages();
 }
 
 type Client struct {
         conn *net.TCPConn;
+        nickname string;
         incomingMessages chan Message;
         outgoingMessages chan Message;
-        nickname []byte;
+        reader *bufio.Reader;
 }
 
 func newClient(conn *net.TCPConn, incoming chan Message) (c *Client) {
-        return &Client{conn, incoming, make(chan Message)};
+        c = new(Client);
+        c.conn = conn;
+        c.incomingMessages = incoming;
+        c.outgoingMessages = make(chan Message);
+        c.reader = bufio.NewReader(c.conn);
+        return c;
 }
 
 func (c *Client) requestNick() {
-        r := bufio.NewReader(c.conn);
+        fmt.Println(" * Requesting nick name from new client…");
+        c.conn.Write(strings.Bytes("Please enter your nickname: "));
 
-        c.conn.Write("Please enter your nickname: ");
-
-        c.nickname, _ = r.ReadBytes('\n');
+        nickname, _ := c.reader.ReadString('\n');
+        c.nickname = nickname[0:len(nickname)-1];
 }
 
 func (c *Client) sendReceiveMessages() {
+        fmt.Println(" * Sending and receiving messages for ", c.nickname);
         go c.receiveMessages();
         c.sendMessages();
 }
 
 func (c *Client) receiveMessages() {
-        r := bufio.NewReader(c.conn);
         for {
-                bytes, _ := r.ReadBytes('\n');
+                bytes, _ := c.reader.ReadString('\n');
                 msg := Message{c.nickname, bytes};
                 c.incomingMessages <-msg;
         }
@@ -94,8 +110,13 @@ func (c *Client) receiveMessages() {
 func (c *Client) sendMessages() {
         for {
                 msg := <-c.outgoingMessages;
-                if msg.nickname != c.nickname {
-                        c.conn.Write(msg.message);
+                if msg.sender != c.nickname {
+                        c.sendMessage(msg);
                 }
         }
+}
+
+func (c *Client) sendMessage(msg Message) {
+        str := fmt.Sprintf("%s\n   %s", msg.sender, msg.message);
+        c.conn.Write(strings.Bytes(str));
 }
