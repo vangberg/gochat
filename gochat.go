@@ -36,7 +36,12 @@ func (s *Server) startRouter() {
 		case msg := <-s.incomingMessages:
 			s.fanOutMessage(msg)
 		case newClient := <-s.registerForMessages:
+			msg := Message{"System", "New user " +
+				newClient.nickname + " has joined.\n"};
+			s.fanOutMessage(msg);
+
 			s.clients.Push(newClient);
+
 			newClient.outgoingMessages <- s.clientList();
 		}
 	}
@@ -125,6 +130,9 @@ func (c *Client) receiveMessages() {
 		}
 		if err == os.EOF {
 			close(c.outgoingMessages);
+                        msg := Message{"System", "User " + c.nickname + 
+                                " has left.\n"};
+                        c.incomingMessages <- msg;
 			return;
 		}
 	}
@@ -143,6 +151,6 @@ func (c *Client) sendMessages() {
 }
 
 func (c *Client) sendMessage(msg Message) {
-	str := fmt.Sprintf("%s:\n   %s", msg.sender, msg.message);
+	str := fmt.Sprintf("%s\n   %s", msg.sender, msg.message);
 	c.conn.Write(strings.Bytes(str));
 }
