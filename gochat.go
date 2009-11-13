@@ -1,6 +1,7 @@
 package gochat
 
 import (
+	"os";
 	"net";
 	"fmt";
 	"bufio";
@@ -25,19 +26,30 @@ func (s *Server) StartServer() {
 	s.registerForMessages = make(chan chan Message);
 	s.outgoingChannels = new(vector.Vector);
 
-	go s.startRouter();
-	s.listenForConnections();
+	go s.listenForConnections();
+	s.startRouter();
 }
 
 func (s *Server) startRouter() {
 	for {
 		select {
 		case msg := <-s.incomingMessages:
-			for i := 0; i < s.outgoingChannels.Len(); i++ {
-				s.outgoingChannels.At(i).(chan Message) <- msg
-			}
+			s.fanOutMessage(msg)
 		case newChannel := <-s.registerForMessages:
 			s.outgoingChannels.Push(newChannel)
+		}
+	}
+}
+
+func (s *Server) fanOutMessage(msg Message) {
+	for i := 0; i < s.outgoingChannels.Len(); i++ {
+		ch := s.outgoingChannels.At(i).(chan Message);
+
+		if closed(ch) {
+			s.outgoingChannels.Delete(i);
+			i--;
+		} else {
+			ch <- msg
 		}
 	}
 }
@@ -58,7 +70,7 @@ func (s *Server) acceptClient() {
 
 	client.requestNick();
 	s.registerForMessages <- client.outgoingMessages;
-	go client.sendReceiveMessages();
+	client.sendReceiveMessages();
 }
 
 type Client struct {
@@ -87,20 +99,29 @@ func (c *Client) requestNick() {
 
 func (c *Client) sendReceiveMessages() {
 	go c.receiveMessages();
-	c.sendMessages();
+	go c.sendMessages();
 }
 
 func (c *Client) receiveMessages() {
 	for {
-		bytes, _ := c.reader.ReadString('\n');
-		msg := Message{c.nickname, bytes};
-		c.incomingMessages <- msg;
+		bytes, err := c.reader.ReadString('\n');
+		if err == nil {
+			msg := Message{c.nickname, bytes};
+			c.incomingMessages <- msg;
+		}
+		if err == os.EOF {
+			close(c.outgoingMessages);
+			return;
+		}
 	}
 }
 
 func (c *Client) sendMessages() {
 	for {
 		msg := <-c.outgoingMessages;
+		if closed(c.outgoingMessages) {
+			return
+		}
 		if msg.sender != c.nickname {
 			c.sendMessage(msg)
 		}
