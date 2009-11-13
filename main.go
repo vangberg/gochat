@@ -1,10 +1,10 @@
 package main
 
 import (
-        "./gochat";
+	"./gochat";
 )
 
 func main() {
-        s := new(gochat.Server);
-        s.StartServer();
+	s := new(gochat.Server);
+	s.StartServer();
 }
