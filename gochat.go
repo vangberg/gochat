@@ -21,8 +21,6 @@ type Message struct {
 }
 
 func (s *Server) StartServer() {
-        fmt.Println(" * Starting server…");
-
         s.incomingMessages = make(chan Message);
         s.registerForMessages = make(chan chan Message);
         s.outgoingChannels = new(vector.Vector);
@@ -32,24 +30,19 @@ func (s *Server) StartServer() {
 }
 
 func (s *Server) startRouter() {
-        fmt.Println(" * Starting message router…");
-
         for {
                 select {
                 case msg := <-s.incomingMessages:
-                        fmt.Println("Received message: ", msg);
                         for i := 0; i < s.outgoingChannels.Len(); i++ {
                                 s.outgoingChannels.At(i).(chan Message) <- msg;
                         }
                 case newChannel := <-s.registerForMessages:
-                        fmt.Println("Channel registered for messages…");
                         s.outgoingChannels.Push(newChannel);
                 }
         }
 }
 
 func (s *Server) listenForConnections() {
-        fmt.Println(" * Listening for connections…");
         ip := net.ParseIP("127.0.0.1");
         addr := &net.TCPAddr{ip, 9999};
         s.listener, _ = net.ListenTCP("tcp", addr);
@@ -59,11 +52,9 @@ func (s *Server) listenForConnections() {
 
 func (s *Server) acceptClient() {
         conn, _ := s.listener.AcceptTCP();
-        fmt.Println(" * Accepting client…");
         client := newClient(conn, s.incomingMessages);
 
         client.requestNick();
-        fmt.Println(" * Registering ", client.nickname, " for messages…");
         s.registerForMessages <- client.outgoingMessages;
         go client.sendReceiveMessages();
 }
@@ -86,7 +77,6 @@ func newClient(conn *net.TCPConn, incoming chan Message) (c *Client) {
 }
 
 func (c *Client) requestNick() {
-        fmt.Println(" * Requesting nick name from new client…");
         c.conn.Write(strings.Bytes("Please enter your nickname: "));
 
         nickname, _ := c.reader.ReadString('\n');
@@ -94,7 +84,6 @@ func (c *Client) requestNick() {
 }
 
 func (c *Client) sendReceiveMessages() {
-        fmt.Println(" * Sending and receiving messages for ", c.nickname);
         go c.receiveMessages();
         c.sendMessages();
 }
