@@ -8,9 +8,10 @@ It's stupidly simple:
 
 Now, a bunch of features is needed:
 
- * Nice formatting (screw Sprintf + TCPConn.Write :/)
+ * Nice formatting (screw Sprintf + TCPConn.Write() :/)
  * Sending a list of connected nicks to new users
- * Remove users when they disconnect
+ * Make sure we get rid of Client struct when client
+   disconnects.
 
 Please do that.
 
