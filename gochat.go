@@ -53,6 +53,7 @@ func (s *Server) acceptClient() {
         conn, _ := s.listener.AcceptTCP();
         client := newClient(conn, s.incomingMessages);
 
+        client.requestNick();
         s.registerForMessages <- client.outgoingMessages;
         go client.sendReceiveMessages();
 }
@@ -61,11 +62,19 @@ type Client struct {
         conn *net.TCPConn;
         incomingMessages chan Message;
         outgoingMessages chan Message;
-        /*nickname []byte;*/
+        nickname []byte;
 }
 
 func newClient(conn *net.TCPConn, incoming chan Message) (c *Client) {
         return &Client{conn, incoming, make(chan Message)};
+}
+
+func (c *Client) requestNick() {
+        r := bufio.NewReader(c.conn);
+
+        c.conn.Write("Please enter your nickname: ");
+
+        c.nickname, _ = r.ReadBytes('\n');
 }
 
 func (c *Client) sendReceiveMessages() {
@@ -77,7 +86,7 @@ func (c *Client) receiveMessages() {
         r := bufio.NewReader(c.conn);
         for {
                 bytes, _ := r.ReadBytes('\n');
-                msg := Message{[]byte{'a', 'b'}, bytes};
+                msg := Message{c.nickname, bytes};
                 c.incomingMessages <-msg;
         }
 }
@@ -85,6 +94,8 @@ func (c *Client) receiveMessages() {
 func (c *Client) sendMessages() {
         for {
                 msg := <-c.outgoingMessages;
-                c.conn.Write(msg.message);
+                if msg.nickname != c.nickname {
+                        c.conn.Write(msg.message);
+                }
         }
 }
