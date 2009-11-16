@@ -151,6 +151,6 @@ func (c *Client) sendMessages() {
 }
 
 func (c *Client) sendMessage(msg Message) {
-	str := fmt.Sprintf("%s\n   %s", msg.sender, msg.message);
+	str := fmt.Sprintf("%s: %s", msg.sender, msg.message);
 	c.conn.Write(strings.Bytes(str));
 }
