@@ -54,9 +54,10 @@ func (s *Server) clientList() (m Message) {
 		clientNicknames[i] = client.nickname;
 	}
 
-	str := strings.Join(clientNicknames, "\n   ") + "\n";
+	str := "Online users: " + 
+                strings.Join(clientNicknames, "   ") + "\n";
 
-	return Message{"Online users", str};
+	return Message{"**** system ****", str};
 }
 
 func (s *Server) fanOutMessage(msg Message) {
