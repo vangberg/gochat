@@ -36,7 +36,7 @@ func (s *Server) startRouter() {
 		case msg := <-s.incomingMessages:
 			s.fanOutMessage(msg)
 		case newClient := <-s.registerForMessages:
-			msg := Message{"System", "New user " +
+			msg := Message{"**** system ****", "New user " +
 				newClient.nickname + " has joined.\n"};
 			s.fanOutMessage(msg);
 
@@ -113,7 +113,13 @@ func (c *Client) requestNick() {
 	c.conn.Write(strings.Bytes("Please enter your nickname: "));
 
 	nickname, _ := c.reader.ReadString('\n');
-	c.nickname = nickname[0 : len(nickname)-1];
+
+        // This is kinda stupid, but hell.
+        if strings.HasSuffix(nickname, "\r\n") {
+                c.nickname = nickname[0 : len(nickname)-2];
+        } else {
+                c.nickname = nickname[0 : len(nickname)-1];
+        }
 }
 
 func (c *Client) sendReceiveMessages() {
@@ -130,8 +136,8 @@ func (c *Client) receiveMessages() {
 		}
 		if err == os.EOF {
 			close(c.outgoingMessages);
-                        msg := Message{"System", "User " + c.nickname + 
-                                " has left.\n"};
+                        msg := Message{"**** system ****", "User " 
+                                + c.nickname + " has left.\n"};
                         c.incomingMessages <- msg;
 			return;
 		}
