@@ -6,13 +6,6 @@ It's stupidly simple:
 2. Run it
 3. Telnet into localhost:9999
 
-Now, a bunch of features is needed:
-
- * Nice formatting (screw Sprintf + TCPConn.Write() :/)
-   - this is a serious point, I can't figure out wtf is going on.
- * Make sure we get rid of Client struct when client
-   disconnects.
-
 Please do that.
 
 Harry Vangberg <harry@vangberg.name>, 2009.
