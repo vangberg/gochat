@@ -54,8 +54,8 @@ func (s *Server) clientList() (m Message) {
 		clientNicknames[i] = client.nickname;
 	}
 
-	str := "Online users: " + 
-                strings.Join(clientNicknames, "   ") + "\n";
+	str := "Online users: " +
+		strings.Join(clientNicknames, "   ") + "\n";
 
 	return Message{"**** system ****", str};
 }
@@ -115,12 +115,12 @@ func (c *Client) requestNick() {
 
 	nickname, _ := c.reader.ReadString('\n');
 
-        // This is kinda stupid, but hell.
-        if strings.HasSuffix(nickname, "\r\n") {
-                c.nickname = nickname[0 : len(nickname)-2];
-        } else {
-                c.nickname = nickname[0 : len(nickname)-1];
-        }
+	// This is kinda stupid, but hell.
+	if strings.HasSuffix(nickname, "\r\n") {
+		c.nickname = nickname[0 : len(nickname)-2]
+	} else {
+		c.nickname = nickname[0 : len(nickname)-1]
+	}
 }
 
 func (c *Client) sendReceiveMessages() {
@@ -137,9 +137,9 @@ func (c *Client) receiveMessages() {
 		}
 		if err == os.EOF {
 			close(c.outgoingMessages);
-                        msg := Message{"**** system ****", "User " 
-                                + c.nickname + " has left.\n"};
-                        c.incomingMessages <- msg;
+			msg := Message{"**** system ****", "User " +
+				c.nickname + " has left.\n"};
+			c.incomingMessages <- msg;
 			return;
 		}
 	}
